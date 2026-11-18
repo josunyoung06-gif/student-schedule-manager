@@ -73,6 +73,38 @@ schedule = {
 - save_schedules(schedules): 일정 파일 저장
 - load_schedules(): 저장된 일정 불러오기
 
+
+## 6-1. 함수별 입력값 및 반환값 규칙
+
+### 공통 규칙
+- 일정 목록은 `schedules`라는 리스트로 관리합니다.
+- 일정 하나는 공통 데이터 형식의 딕셔너리로 저장합니다.
+- 일정 등록·수정·삭제 함수는 내부에서 사용자 입력을 받습니다.
+- 일정 목록을 변경하는 함수는 변경된 리스트를 반환합니다.
+- 날짜는 `YYYY-MM-DD` 형식으로 통일합니다.
+
+### schedule.py
+- add_schedule(schedules): 일정 입력 후 변경된 리스트 반환
+- edit_schedule(schedules): 일정 수정 후 변경된 리스트 반환
+- delete_schedule(schedules): 일정 삭제 후 변경된 리스트 반환
+- list_schedules(schedules): 일정 목록 출력, 반환값 없음
+
+### deadline.py
+- calculate_dday(due_date): 오늘 날짜를 기준으로 남은 일수 반환
+- sort_by_deadline(schedules): 마감일이 빠른 순서로 정렬한 리스트 반환
+- sort_by_priority(schedules): high → medium → low 순서로 정렬한 리스트 반환
+
+### storage.py
+- mark_completed(schedules, schedule_id): 해당 일정의 완료 상태를 변경하고 리스트 반환
+- save_schedules(schedules): schedules.json 파일에 저장, 반환값 없음
+- load_schedules(): schedules.json 파일에서 일정 목록 불러오기
+
+### 예외 처리
+- 존재하지 않는 일정 번호를 입력하면 오류 메시지를 출력합니다.
+- 잘못된 날짜 형식을 입력하면 다시 입력받습니다.
+- 저장 파일이 없으면 빈 리스트를 반환합니다.
+- 정렬 함수는 원본 리스트를 변경하지 않고 정렬된 새 리스트를 반환합니다.
+
 ## 7. 개발 규칙
 - 공통 데이터 구조와 변수명을 동일하게 사용합니다.
 - 함수명과 파일명은 임의로 변경하지 않습니다.
