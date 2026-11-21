@@ -1,4 +1,4 @@
-"""storage.py 독립 테스트: python -m unittest -v test_storage.py"""
+"""storage.py 독립 검증: py -3 -m unittest -v test_storage.py"""
 
 import json
 import tempfile
@@ -19,7 +19,7 @@ class StorageTests(unittest.TestCase):
         self.addCleanup(patcher.stop)
         self.example = [{
             "id": 1, "title": "파이썬 과제", "type": "assignment",
-            "due_date": "2026-12-01", "priority": "high", "completed": False
+            "due_date": "2026-12-01", "priority": "high", "completed": False,
         }]
 
     def test_complete_existing_id(self):
@@ -50,6 +50,54 @@ class StorageTests(unittest.TestCase):
         storage.DATA_FILE.write_text(json.dumps({"id": 1}), encoding="utf-8")
         with self.assertRaises(ValueError):
             storage.load_schedules()
+
+    def test_multiple_schedules_change_only_target(self):
+        two = [dict(self.example[0]), dict(self.example[0], id=9, title="시험")]
+        storage.mark_completed(two, 9)
+        self.assertFalse(two[0]["completed"])
+        self.assertTrue(two[1]["completed"])
+
+    def test_already_complete_remains_true(self):
+        self.example[0]["completed"] = True
+        storage.mark_completed(self.example, 1)
+        self.assertTrue(self.example[0]["completed"])
+
+    def test_empty_list_round_trip(self):
+        storage.save_schedules([])
+        self.assertEqual(storage.load_schedules(), [])
+
+    def test_invalid_item_rejected(self):
+        storage.DATA_FILE.write_text("[42]", encoding="utf-8")
+        with self.assertRaises(ValueError):
+            storage.load_schedules()
+
+    def test_duplicate_id_rejected(self):
+        data = [self.example[0], dict(self.example[0])]
+        storage.DATA_FILE.write_text(json.dumps(data), encoding="utf-8")
+        with self.assertRaises(ValueError):
+            storage.load_schedules()
+
+    def test_invalid_date_rejected(self):
+        broken = [dict(self.example[0], due_date="2026-02-30")]
+        storage.DATA_FILE.write_text(json.dumps(broken), encoding="utf-8")
+        with self.assertRaises(ValueError):
+            storage.load_schedules()
+
+    def test_failed_save_keeps_old_file(self):
+        original = json.dumps(self.example, ensure_ascii=False)
+        storage.DATA_FILE.write_text(original, encoding="utf-8")
+        with self.assertRaises(TypeError):
+            storage.save_schedules([dict(self.example[0], extra=object())])
+        self.assertEqual(storage.DATA_FILE.read_text(encoding="utf-8"), original)
+
+    def test_replace_failure_keeps_old_file(self):
+        original = json.dumps(self.example, ensure_ascii=False)
+        storage.DATA_FILE.write_text(original, encoding="utf-8")
+        with patch.object(storage.os, "replace", side_effect=OSError("mock replacement error")):
+            with self.assertRaises(OSError):
+                storage.save_schedules(self.example)
+        self.assertEqual(storage.DATA_FILE.read_text(encoding="utf-8"), original)
+        self.assertEqual(list(storage.DATA_FILE.parent.glob(".schedules-*.tmp")), [])
 
 
 if __name__ == "__main__":
