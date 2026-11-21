@@ -16,6 +16,9 @@ DATA_FILE = Path(__file__).resolve().parent / "schedules.json"
 
 def mark_completed(schedules, schedule_id):
     """해당 ID의 completed를 True로 표시하고 목록을 반환합니다."""
+    if type(schedule_id) is not int:
+        print("오류: 일정 번호는 정수여야 합니다.")
+        return schedules
     for schedule in schedules:
         if schedule["id"] == schedule_id:
             schedule["completed"] = True
@@ -62,7 +65,7 @@ def _validate_schedules(schedules):
 def save_schedules(schedules):
     """정상적인 일정 목록을 임시 파일에 저장한 다음 본 파일로 교체합니다."""
     _validate_schedules(schedules)
-    payload = json.dumps(schedules, ensure_ascii=False, indent=2)
+    payload = json.dumps(schedules, ensure_ascii=False, indent=2, allow_nan=False)
     temp_path = None
     try:
         with tempfile.NamedTemporaryFile(

@@ -100,5 +100,23 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(list(storage.DATA_FILE.parent.glob(".schedules-*.tmp")), [])
 
 
+    def test_boolean_schedule_id_not_matched(self):
+        result = storage.mark_completed(self.example, True)
+        self.assertIs(result, self.example)
+        self.assertFalse(self.example[0]["completed"])
+
+    def test_float_schedule_id_not_matched(self):
+        result = storage.mark_completed(self.example, 1.0)
+        self.assertIs(result, self.example)
+        self.assertFalse(self.example[0]["completed"])
+
+    def test_nan_rejected_without_overwriting_existing_file(self):
+        original = json.dumps(self.example, ensure_ascii=False)
+        storage.DATA_FILE.write_text(original, encoding="utf-8")
+        with self.assertRaises(ValueError):
+            storage.save_schedules([dict(self.example[0], extra=float("nan"))])
+        self.assertEqual(storage.DATA_FILE.read_text(encoding="utf-8"), original)
+
+
 if __name__ == "__main__":
     unittest.main()
