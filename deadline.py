@@ -1,14 +1,24 @@
 
-# Deadline and Priority Management
-# Team Member 2
+from datetime import datetime, date
+
 
 def calculate_dday(due_date):
-    pass
+    due = datetime.strptime(due_date, "%Y-%m-%d").date()
+    today = date.today()
+    return (due - today).days
 
 
 def sort_by_deadline(schedules):
-    pass
+    return sorted(schedules, key=lambda s: s["due_date"])
 
 
 def sort_by_priority(schedules):
-    pass
+    priority_order = {
+        "high": 0,
+        "medium": 1,
+        "low": 2
+    }
+    return sorted(
+        schedules,
+        key=lambda s: priority_order[s["priority"]]
+    )
