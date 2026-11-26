@@ -1,8 +1,5 @@
-"""일정 완료 상태 및 JSON 파일 저장/불러오기 (1차 수정 검토안).
-
-README에 명시된 공개 함수명과 입출력 규칙을 유지합니다.
-AI가 작성한 검토용 코드이며, 팀의 합의와 통합 테스트 전 단계입니다.
-"""
+# 일정 완료 처리, 저장 및 불러오기
+# ChatGPT의 초기 코드와 수정안을 활용했으며, 가독성 개선에도 AI를 활용함.
 
 import json
 import os
@@ -14,8 +11,8 @@ from pathlib import Path
 DATA_FILE = Path(__file__).resolve().parent / "schedules.json"
 
 
+# 일정 완료 처리 (완료 취소는 팀 합의 후 결정)
 def mark_completed(schedules, schedule_id):
-    """해당 ID의 completed를 True로 표시하고 목록을 반환합니다."""
     if type(schedule_id) is not int:
         print("오류: 일정 번호는 정수여야 합니다.")
         return schedules
@@ -27,22 +24,26 @@ def mark_completed(schedules, schedule_id):
     return schedules
 
 
+# 일정 데이터 형식 확인
 def _validate_schedules(schedules):
-    """README의 공통 데이터 형식과 고유 ID 규칙을 확인합니다."""
     if not isinstance(schedules, list):
         raise ValueError("저장 파일의 데이터는 일정 리스트여야 합니다.")
 
+    required = ("id", "title", "type", "due_date", "priority", "completed")
     ids = set()
     for index, schedule in enumerate(schedules, 1):
         if not isinstance(schedule, dict):
             raise ValueError(f"{index}번째 일정이 딕셔너리가 아닙니다.")
 
-        required = {"id", "title", "type", "due_date", "priority", "completed"}
-        if not required.issubset(schedule):
-            raise ValueError(f"{index}번째 일정에 필수 항목이 없습니다.")
-        if type(schedule["id"]) is not int or schedule["id"] in ids:
+        for key in required:
+            if key not in schedule:
+                raise ValueError(f"{index}번째 일정에 필수 항목이 없습니다.")
+
+        schedule_id = schedule["id"]
+        if type(schedule_id) is not int or schedule_id in ids:
             raise ValueError(f"{index}번째 일정의 ID가 올바르지 않거나 중복됩니다.")
-        ids.add(schedule["id"])
+        ids.add(schedule_id)
+
         if not isinstance(schedule["title"], str):
             raise ValueError(f"{index}번째 일정 제목이 문자열이 아닙니다.")
         if schedule["type"] not in ("assignment", "exam"):
@@ -51,6 +52,7 @@ def _validate_schedules(schedules):
             raise ValueError(f"{index}번째 일정 중요도가 올바르지 않습니다.")
         if type(schedule["completed"]) is not bool:
             raise ValueError(f"{index}번째 일정 완료 여부가 True/False가 아닙니다.")
+
         due_date = schedule["due_date"]
         if not isinstance(due_date, str):
             raise ValueError(f"{index}번째 일정 날짜가 문자열이 아닙니다.")
@@ -62,15 +64,20 @@ def _validate_schedules(schedules):
             raise ValueError(f"{index}번째 일정 날짜 형식이 YYYY-MM-DD가 아닙니다.")
 
 
+# 일정 저장
 def save_schedules(schedules):
-    """정상적인 일정 목록을 임시 파일에 저장한 다음 본 파일로 교체합니다."""
     _validate_schedules(schedules)
     payload = json.dumps(schedules, ensure_ascii=False, indent=2, allow_nan=False)
+    # 기존 파일은 임시 파일에 정상적으로 쓴 뒤에만 교체한다.
     temp_path = None
     try:
         with tempfile.NamedTemporaryFile(
-            mode="w", encoding="utf-8", dir=DATA_FILE.parent,
-            prefix=".schedules-", suffix=".tmp", delete=False,
+            mode="w",
+            encoding="utf-8",
+            dir=DATA_FILE.parent,
+            prefix=".schedules-",
+            suffix=".tmp",
+            delete=False,
         ) as tmp:
             temp_path = Path(tmp.name)
             tmp.write(payload)
@@ -80,8 +87,8 @@ def save_schedules(schedules):
             temp_path.unlink(missing_ok=True)
 
 
+# 일정 불러오기
 def load_schedules():
-    """저장된 일정 목록을 읽고 검증합니다. 파일이 없다면 []을 반환합니다."""
     if not DATA_FILE.exists():
         return []
     try:
